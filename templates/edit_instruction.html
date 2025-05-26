@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактировать инструкцию</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Редактировать инструкцию</h1>
+
+        <a href="{{ url_for('section', section_id=instruction.section_id) }}" class="btn btn-back back-btn">Назад</a>
+
+        <form action="" method="post" class="form">
+            <input type="text" name="title" value="{{ instruction.title }}" required>
+            <textarea name="content" required>{{ instruction.content }}</textarea>
+            <button type="submit" class="btn btn-add">Сохранить</button>
+        </form>
+    </div>
+</body>
+</html>

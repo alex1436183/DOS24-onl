@@ -1,0 +1,102 @@
+stages:
+  - stage_test
+  - stage_build_push
+  - stage_deploy_dev  
+  - stage_deploy_prd  
+  - stage_finish 
+  
+ 
+workflow:  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+job_test:
+  stage: stage_test
+  image: docker:latest
+  script:
+    - echo "Test Tool versions and Creds"
+    - docker --version
+
+job_check_env:
+  stage: stage_test
+  image: docker:latest
+  script:
+    - echo "Checking required environment variables..."
+    - |
+      if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_REPO" ]; then
+        echo "ERROR: Required environment variables DOCKERHUB_USERNAME or DOCKERHUB_REPO are not set."
+        exit 1
+      fi
+    - echo "Environment variables are set."
+    - echo "DOCKERHUB_USERNAME=[$DOCKERHUB_USERNAME]"
+    - echo "DOCKERHUB_REPO=[$DOCKERHUB_REPO]"
+    - echo "CI_COMMIT_BRANCH=[$CI_COMMIT_BRANCH]"
+
+job_build:
+  stage: stage_build_push
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKERHUB_USERNAME/$DOCKERHUB_REPO .
+    - echo "Tagging image..."
+    - docker tag $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:latest $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest
+    - docker tag $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:latest $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA
+    - echo "Pushing image to Docker Hub..."
+    - docker push $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest
+    - docker push $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA
+
+job_deploy_dev:
+  stage: stage_deploy_dev
+  image: docker:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+  before_script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$SWARM_IP" >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying via SSH to Docker Swarm..."
+    - |
+      ssh -i ~/.ssh/id_rsa $SWARM_USER@$SWARM_IP << 'EOF'
+        echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"
+        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin 
+        echo "Pulling: $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest"
+        docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest 
+        docker compose -p my_app_dev -f /home/alex1743tms/docker/app-my/docker-compose.yml  up -d
+      EOF 
+
+job_deploy_prd:
+  stage: stage_deploy_prd
+  image: docker:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  before_script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H "$SWARM_IP" >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying via SSH to Docker Swarm..."
+    - |
+      ssh -i ~/.ssh/id_rsa $SWARM_USER@$SWARM_IP << 'EOF'
+        docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD 
+        docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest 
+        docker stack deploy -c /home/alex1743tms/docker/app-my-1.1/docker-compose.yml my_stack
+      EOF
+
+
+job_finish:
+  stage: stage_finish
+  image: docker:latest
+  script:
+    - echo "CI/CD Pipeline Finished Successfully!"

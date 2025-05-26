@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: instructions
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  backend:
+    image: alex1436183/my-app-prod:main-latest
+    environment:
+      DB_NAME: instructions
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+    networks:
+      - app_net
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  nginx:
+    image: nginx:stable
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot:/etc/letsencrypt
+      - certbot_1:/var/www/certbot
+    networks:
+      - app_net
+    command: ["nginx", "-g", "daemon off;"]
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot:/etc/letsencrypt
+      - certbot_1:/var/www/certbot
+    environment:
+      CERTBOT_EMAIL: avl1436183@gmail.com
+    entrypoint: /bin/sh -c "sleep 10 && certbot certonly --webroot -w /var/www/certbot -d stepnote.duckdns.org --agree-tos --email \$CERTBOT_EMAIL --non-interactive"
+    networks:
+      - app_net
+    deploy:
+      restart_policy:
+        condition: none
+
+volumes:
+  certbot:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/gsp/certbot/conf
+      o: bind
+
+  certbot_1:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/gsp/certbot/www
+      o: bind
+
+configs:
+  nginx_conf:
+    file: ./nginx/nginx.conf
+
+networks:
+  app_net:

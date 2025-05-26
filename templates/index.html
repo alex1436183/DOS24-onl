@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Разделы</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Главная</h1>
+
+        <section class="add-section">
+            <h2>Добавить раздел</h2>
+            <form action="{{ url_for('add_section') }}" method="post" class="form">
+                <input type="text" name="section_name" placeholder="Название раздела" required>
+                <button type="submit" class="btn btn-add">Добавить</button>
+            </form>
+        </section>
+
+        <section class="sections-list">
+            <h2>Список разделов</h2>
+            <ul class="list">
+                {% for section in sections %}
+                    <li class="section-item">
+                        <a href="{{ url_for('section', section_id=section.id) }}" class="section-link">
+                            {{ section.name }}
+                        </a>
+                        <div class="section-actions">
+                            <form action="{{ url_for('edit_section', section_id=section.id) }}" method="post" class="form-inline">
+                                <input type="text" name="new_name" placeholder="Новое название" required>
+                                <button type="submit" class="btn btn-edit">Редактировать</button>
+                            </form>
+                            <form action="{{ url_for('delete_section', section_id=section.id) }}" method="post">
+                                <button type="submit" class="btn btn-delete">Удалить</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+</body>
+</html>

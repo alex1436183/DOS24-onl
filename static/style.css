@@ -1,0 +1,184 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f5f6fa;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    font-size: 32px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+h2 {
+    color: #34495e;
+    font-size: 24px;
+    margin: 30px 0 20px;
+}
+
+.form {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.form-inline {
+    display: flex;
+    gap: 10px;
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    outline: none;
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-add {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.btn-add:hover {
+    background-color: #27ae60;
+}
+
+.btn-edit {
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-edit:hover {
+    background-color: #2980b9;
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+}
+
+.btn-back {
+    background-color: #95a5a6;
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.btn-back:hover {
+    background-color: #7f8c8d;
+    transform: translateY(-2px);
+}
+
+.list {
+    list-style: none;
+}
+
+.section-item,
+.instruction-item {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.section-link:hover {
+    text-decoration: underline;
+}
+
+.section-actions,
+.instruction-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.instruction-content h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.instruction-content p {
+    color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    .section-item,
+    .instruction-item {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .form-inline {
+        flex-direction: column;
+    }
+}
