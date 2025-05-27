@@ -1,8 +1,8 @@
 stages:
-  - stage_test
   - stage_build_push
   - stage_deploy_dev  
-  - stage_deploy_prd  
+  - stage_deploy_prd
+  - stage_test  
   - stage_finish 
   
  
@@ -10,27 +10,6 @@ workflow:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "dev"'
-job_test:
-  stage: stage_test
-  image: docker:latest
-  script:
-    - echo "Test Tool versions and Creds"
-    - docker --version
-
-job_check_env:
-  stage: stage_test
-  image: docker:latest
-  script:
-    - echo "Checking required environment variables..."
-    - |
-      if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_REPO" ]; then
-        echo "ERROR: Required environment variables DOCKERHUB_USERNAME or DOCKERHUB_REPO are not set."
-        exit 1
-      fi
-    - echo "Environment variables are set."
-    - echo "DOCKERHUB_USERNAME=[$DOCKERHUB_USERNAME]"
-    - echo "DOCKERHUB_REPO=[$DOCKERHUB_REPO]"
-    - echo "CI_COMMIT_BRANCH=[$CI_COMMIT_BRANCH]"
 
 job_build:
   stage: stage_build_push
@@ -67,10 +46,6 @@ job_deploy_dev:
     - echo "Deploying via SSH to Docker Swarm..."
     - |
       ssh -i ~/.ssh/id_rsa $SWARM_USER@$SWARM_IP << 'EOF'
-        echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"
-        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin 
-        echo "Pulling: $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest"
-        docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest 
         docker compose -p my_app_dev -f /home/alex1743tms/docker/app-my/docker-compose.yml  up -d
       EOF 
 
@@ -89,14 +64,48 @@ job_deploy_prd:
     - echo "Deploying via SSH to Docker Swarm..."
     - |
       ssh -i ~/.ssh/id_rsa $SWARM_USER@$SWARM_IP << 'EOF'
-        docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD 
-        docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$CI_COMMIT_BRANCH-latest 
         docker stack deploy -c /home/alex1743tms/docker/app-my-1.1/docker-compose.yml my_stack
       EOF
 
-
-job_finish:
-  stage: stage_finish
-  image: docker:latest
+job_test_dev:
+  stage: stage_test
+  image: alpine:3.21
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
   script:
-    - echo "CI/CD Pipeline Finished Successfully!"
+    - apk add --no-cache curl
+    - sleep 10  
+    - curl http://35.228.39.55:8989
+ 
+
+
+job_check_prod:
+  stage: stage_test
+  image: alpine:3.21
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+  - apk add --no-cache curl
+  - sleep 10
+  - curl https://stepnote.duckdns.org/
+
+
+notify_success:
+  stage: stage_finish
+  image: alpine:3.21
+  when: on_success
+  script: |
+    apk add --no-cache curl
+    curl -s -X POST https://api.telegram.org/bot$TOKEN/sendMessage \
+      -d chat_id=$CHAT_ID \
+      -d text="✅ CI/CD Pipeline Finished Successfully"
+
+notify_failure:
+  stage: stage_finish
+  image: alpine:3.21
+  when: on_failure
+  script: |
+    apk add --no-cache curl
+    curl -s -X POST https://api.telegram.org/bot$TOKEN/sendMessage \
+      -d chat_id=$CHAT_ID \
+      -d text="❌ CI/CD Pipeline FAILED"
