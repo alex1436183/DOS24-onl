@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_net_dev
+
+  backend:
+    image: alex1436183/my-app-prod:dev-latest
+    ports:
+      - "5001:5000"
+    environment:
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 5432
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    networks:
+      - app_net_dev
+
+  nginx:
+    image: nginx:stable
+    ports:
+      - "8989:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - backend
+    networks:
+      - app_net_dev
+    entrypoint: "nginx -g 'daemon off;'"
+
+
+
+volumes:
+  postgres_data:
+
+networks:
+  app_net_dev:
